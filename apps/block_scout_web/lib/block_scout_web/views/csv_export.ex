@@ -3,7 +3,6 @@ defmodule BlockScoutWeb.CsvExportView do
 
   alias Explorer.Chain
   alias Explorer.Chain.Address
-  alias Explorer.Chain.CSVExport.Helper
 
   defp type_display_name(type) do
     case type do

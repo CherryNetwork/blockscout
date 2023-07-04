@@ -38,12 +38,10 @@ $button.on('click', () => {
   const addressHash = $button.data('address-hash')
   const from = $('.js-datepicker-from').val()
   const to = $('.js-datepicker-to').val()
-  const urlParams = new URLSearchParams(window.location.search)
-  const filterType = urlParams.get('filter_type')
-  const filterValue = urlParams.get('filter_value')
-  const baseURL = `${$button.data('link')}?address_id=${addressHash}&from_period=${from}&to_period=${to}&filter_type=${filterType}&filter_value=${filterValue}`
   if (reCaptchaDisabled) {
-    download(baseURL)
+    const url = `${$button.data('link')}?address_id=${addressHash}&from_period=${from}&to_period=${to}`
+
+    download(url)
   } else if (reCaptchaV3ClientKey) {
     disableBtnWithSpinner()
     // @ts-ignore
@@ -53,7 +51,7 @@ $button.on('click', () => {
       // eslint-disable-next-line
       grecaptcha.execute(reCaptchaV3ClientKey, { action: 'login' })
         .then(function (token) {
-          const url = `${baseURL}&recaptcha_response=${token}`
+          const url = `${$button.data('link')}?address_id=${addressHash}&from_period=${from}&to_period=${to}&recaptcha_response=${token}`
 
           download(url)
         })
@@ -64,7 +62,7 @@ $button.on('click', () => {
   const recaptchaResponse = grecaptcha.getResponse()
     if (recaptchaResponse) {
       disableBtnWithSpinner()
-      const url = `${baseURL}&recaptcha_response=${recaptchaResponse}`
+      const url = `${$button.data('link')}?address_id=${addressHash}&from_period=${from}&to_period=${to}&recaptcha_response=${recaptchaResponse}`
 
       download(url, true, true)
     }
@@ -90,13 +88,7 @@ $button.on('click', () => {
           const downloadUrl = URL.createObjectURL(blob)
           const a = document.createElement('a')
           a.href = downloadUrl
-          let fileName = `${$button.data('type')}_for_${addressHash}_from_${from}_to_${to}`
-          if (filterType && filterValue) {
-            fileName = `${fileName}_with_filter_type_${filterType}_value_${filterValue}.csv`
-          } else {
-            fileName = `${fileName}.csv`
-          }
-          a.download = fileName
+          a.download = `${$button.data('type')}_for_${addressHash}_from_${from}_to_${to}.csv`
           document.body.appendChild(a)
           a.click()
 

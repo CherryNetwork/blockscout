@@ -147,10 +147,6 @@ defmodule BlockScoutWeb.PagingHelper do
     [filter: :vyper]
   end
 
-  def current_filter(%{"filter" => "yul"}) do
-    [filter: :yul]
-  end
-
   def current_filter(_), do: []
 
   def search_query(%{"search" => ""}), do: []

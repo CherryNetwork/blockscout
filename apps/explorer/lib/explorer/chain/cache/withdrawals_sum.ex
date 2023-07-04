@@ -12,7 +12,6 @@ defmodule Explorer.Chain.Cache.WithdrawalsSum do
   use GenServer
 
   alias Explorer.Chain
-  alias Explorer.Chain.Wei
 
   @counter_type "withdrawals_sum"
 
@@ -69,7 +68,7 @@ defmodule Explorer.Chain.Cache.WithdrawalsSum do
 
     params = %{
       counter_type: @counter_type,
-      value: (withdrawals_sum && Wei.to(withdrawals_sum, :wei)) || 0
+      value: withdrawals_sum
     }
 
     Chain.upsert_last_fetched_counter(params)

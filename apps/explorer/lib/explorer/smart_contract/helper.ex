@@ -25,7 +25,9 @@ defmodule Explorer.SmartContract.Helper do
       !error?(function) && !event?(function) && !constructor?(function) && nonpayable?(function) &&
         !empty_outputs?(function)
 
-  def empty_outputs?(function), do: is_nil(function["outputs"]) || function["outputs"] == []
+  def empty_inputs?(function), do: function["inputs"] == []
+
+  def empty_outputs?(function), do: function["outputs"] == []
 
   def payable?(function), do: function["stateMutability"] == "payable" || function["payable"]
 

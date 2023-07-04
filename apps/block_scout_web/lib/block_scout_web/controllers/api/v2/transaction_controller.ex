@@ -29,7 +29,6 @@ defmodule BlockScoutWeb.API.V2.TransactionController do
     [created_contract_address: :token] => :optional,
     [from_address: :names] => :optional,
     [to_address: :names] => :optional,
-    # as far as I remember this needed for substituting implementation name in `to` address instead of is's real name (in transactions)
     [to_address: :smart_contract] => :optional
   }
 
@@ -37,7 +36,9 @@ defmodule BlockScoutWeb.API.V2.TransactionController do
     [from_address: :smart_contract] => :optional,
     [to_address: :smart_contract] => :optional,
     [from_address: :names] => :optional,
-    [to_address: :names] => :optional
+    [to_address: :names] => :optional,
+    from_address: :required,
+    to_address: :required
   }
 
   @token_transfers_in_tx_necessity_by_association %{
@@ -45,6 +46,8 @@ defmodule BlockScoutWeb.API.V2.TransactionController do
     [to_address: :smart_contract] => :optional,
     [from_address: :names] => :optional,
     [to_address: :names] => :optional,
+    from_address: :required,
+    to_address: :required,
     token: :required
   }
 
@@ -242,19 +245,11 @@ defmodule BlockScoutWeb.API.V2.TransactionController do
             )},
          {:ok, false} <- AccessHelper.restricted_access?(to_string(transaction.from_address_hash), params),
          {:ok, false} <- AccessHelper.restricted_access?(to_string(transaction.to_address_hash), params) do
-      state_changes_plus_next_page =
-        transaction |> TransactionStateHelper.state_changes(params |> paging_options() |> Keyword.merge(api?: true))
-
-      {state_changes, next_page} = split_list_by_page(state_changes_plus_next_page)
-
-      next_page_params =
-        next_page
-        |> next_page_params(state_changes, params)
-        |> delete_parameters_from_next_page_params()
+      state_changes = TransactionStateHelper.state_changes(transaction)
 
       conn
       |> put_status(200)
-      |> render(:state_changes, %{state_changes: state_changes, next_page_params: next_page_params})
+      |> render(:state_changes, %{state_changes: state_changes})
     end
   end
 

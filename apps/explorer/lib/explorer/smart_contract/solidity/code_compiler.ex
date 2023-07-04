@@ -76,14 +76,14 @@ defmodule Explorer.SmartContract.Solidity.CodeCompiler do
     code = Keyword.fetch!(params, :code)
     optimize = Keyword.fetch!(params, :optimize)
     optimization_runs = optimization_runs(params)
-    evm_version = Keyword.get(params, :evm_version, List.last(evm_versions(:solidity)))
+    evm_version = Keyword.get(params, :evm_version, List.last(allowed_evm_versions()))
     bytecode_hash = Keyword.get(params, :bytecode_hash, "default")
     external_libs = Keyword.get(params, :external_libs, %{})
 
     external_libs_string = Jason.encode!(external_libs)
 
     checked_evm_version =
-      if evm_version in evm_versions(:solidity) do
+      if evm_version in allowed_evm_versions() do
         evm_version
       else
         "byzantium"
@@ -262,19 +262,9 @@ defmodule Explorer.SmartContract.Solidity.CodeCompiler do
     end
   end
 
-  def evm_versions(compiler_type) do
-    case compiler_type do
-      :vyper ->
-        allowed_evm_versions(:allowed_vyper_evm_versions)
-
-      :solidity ->
-        allowed_evm_versions(:allowed_solidity_evm_versions)
-    end
-  end
-
-  defp allowed_evm_versions(env_name) do
+  def allowed_evm_versions do
     :explorer
-    |> Application.get_env(env_name)
+    |> Application.get_env(:allowed_evm_versions)
     |> String.split(",")
     |> Enum.map(fn version -> String.trim(version) end)
   end

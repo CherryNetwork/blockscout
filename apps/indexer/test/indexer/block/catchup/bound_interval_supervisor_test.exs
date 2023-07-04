@@ -8,6 +8,7 @@ defmodule Indexer.Block.Catchup.BoundIntervalSupervisorTest do
 
   alias Explorer.Chain.Block
   alias Explorer.Repo
+  alias Explorer.Utility.MissingRangesManipulator
   alias Indexer.BoundInterval
   alias Indexer.Block.Catchup
   alias Indexer.Block.Catchup.MissingRangesCollector
@@ -531,8 +532,6 @@ defmodule Indexer.Block.Catchup.BoundIntervalSupervisorTest do
 
       # from `setup :state`
       assert_received :catchup_index
-
-      Process.sleep(50)
 
       assert {:noreply,
               %Catchup.BoundIntervalSupervisor{fetcher: %Catchup.Fetcher{}, task: %Task{pid: pid, ref: ref}} =

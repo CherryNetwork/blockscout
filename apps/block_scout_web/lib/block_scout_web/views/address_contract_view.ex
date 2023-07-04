@@ -4,6 +4,7 @@ defmodule BlockScoutWeb.AddressContractView do
   alias ABI.{FunctionSelector, TypeDecoder}
   alias Explorer.Chain
   alias Explorer.Chain.{Address, Data, InternalTransaction, Transaction}
+  alias Explorer.SmartContract.Helper
 
   def render("scripts.html", %{conn: conn}) do
     render_scripts(conn, "address_contract/code_highlighting.js")
@@ -33,12 +34,9 @@ defmodule BlockScoutWeb.AddressContractView do
       |> decode_data(input_types)
       |> Enum.zip(constructor_abi["inputs"])
       |> Enum.reduce({0, "#{contract.constructor_arguments}\n\n"}, fn {val, %{"type" => type}}, {count, acc} ->
-        formatted_val = val_to_string(val, type, conn)
+        formatted_val = Helper.sanitize_input(val_to_string(val, type, conn))
 
-        {count + 1,
-         ~E"""
-         <%= acc %>Arg [<%= count %>] (<b><%= type %></b>) : <%= formatted_val %>
-         """}
+        {count + 1, "#{acc}Arg [#{count}] (<b>#{Helper.sanitize_input(type)}</b>) : #{formatted_val}\n"}
       end)
 
     result
@@ -84,7 +82,7 @@ defmodule BlockScoutWeb.AddressContractView do
 
   defp get_formatted_address_data(address, address_hash, conn) do
     if address != nil do
-      ~E"<a href=<%= address_path(conn, :show, address) %>><%= address_hash %></a>"
+      "<a href=" <> address_path(conn, :show, address) <> ">" <> address_hash <> "</a>"
     else
       address_hash
     end
@@ -104,9 +102,7 @@ defmodule BlockScoutWeb.AddressContractView do
     Enum.reduce(libraries, "", fn %{name: name, address_hash: address_hash}, acc ->
       address = get_address(address_hash)
 
-      ~E"""
-      <%= acc %><span class="hljs-title"><%= name %></span> : <%= get_formatted_address_data(address, address_hash, conn) %>
-      """
+      "#{acc}<span class=\"hljs-title\">#{Helper.sanitize_input(name)}</span> : #{get_formatted_address_data(address, address_hash, conn)}  \n"
     end)
   end
 

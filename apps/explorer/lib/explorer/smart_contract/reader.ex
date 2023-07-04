@@ -270,7 +270,7 @@ defmodule Explorer.SmartContract.Reader do
 
     abi_with_method_id
     |> Enum.filter(&Helper.queriable_method?(&1))
-    |> Enum.map(&fetch_current_value_from_blockchain(&1, abi_with_method_id, contract_address_hash, false, [], from))
+    |> Enum.map(&fetch_current_value_from_blockchain(&1, abi_with_method_id, contract_address_hash, false, from))
   end
 
   def read_only_functions_from_abi_with_sender(_, _, _), do: []
@@ -332,34 +332,21 @@ defmodule Explorer.SmartContract.Reader do
     "tuple[#{tuple_types}]"
   end
 
-  def fetch_current_value_from_blockchain(
-        function,
-        abi,
-        contract_address_hash,
-        leave_error_as_map,
-        options,
-        from \\ nil
-      ) do
+  def fetch_current_value_from_blockchain(function, abi, contract_address_hash, leave_error_as_map, from \\ nil) do
     case function do
       %{"inputs" => []} ->
         method_id = function["method_id"]
         args = function["inputs"]
+        outputs = function["outputs"]
 
-        %{output: outputs, names: names} =
-          query_function_with_names(
-            contract_address_hash,
-            %{method_id: method_id, args: args},
-            :regular,
-            from,
-            abi,
-            leave_error_as_map,
-            options
-          )
+        values =
+          contract_address_hash
+          |> query_verified_contract(%{method_id => normalize_args(args)}, from, leave_error_as_map, abi)
+          |> link_outputs_and_values(outputs, method_id)
 
         function
-        |> Map.replace!("outputs", outputs)
+        |> Map.replace!("outputs", values)
         |> Map.put("abi_outputs", Map.get(function, "outputs", []))
-        |> Map.put("names", names)
 
       _ ->
         function
@@ -377,10 +364,9 @@ defmodule Explorer.SmartContract.Reader do
           %{method_id: String.t(), args: [term()] | nil},
           :regular | :proxy,
           String.t() | nil,
-          [],
-          boolean()
+          [api?]
         ) :: %{:names => [any()], :output => [%{}]}
-  def query_function_with_names(contract_address_hash, params, type, from, abi, leave_error_as_map, options \\ [])
+  def query_function_with_names(contract_address_hash, params, type, from, abi, options \\ [])
 
   def query_function_with_names(
         contract_address_hash,
@@ -388,7 +374,6 @@ defmodule Explorer.SmartContract.Reader do
         :regular,
         from,
         abi,
-        leave_error_as_map,
         _options
       ) do
     outputs =
@@ -397,7 +382,7 @@ defmodule Explorer.SmartContract.Reader do
         method_id,
         args || [],
         from,
-        leave_error_as_map,
+        true,
         abi
       )
 
@@ -405,15 +390,7 @@ defmodule Explorer.SmartContract.Reader do
     %{output: outputs, names: names}
   end
 
-  def query_function_with_names(
-        contract_address_hash,
-        %{method_id: method_id, args: args},
-        :proxy,
-        from,
-        _abi,
-        leave_error_as_map,
-        options
-      ) do
+  def query_function_with_names(contract_address_hash, %{method_id: method_id, args: args}, :proxy, from, _abi, options) do
     abi = get_abi(contract_address_hash, :proxy, options)
 
     outputs =
@@ -422,7 +399,7 @@ defmodule Explorer.SmartContract.Reader do
         method_id,
         args || [],
         from,
-        leave_error_as_map,
+        true,
         abi
       )
 

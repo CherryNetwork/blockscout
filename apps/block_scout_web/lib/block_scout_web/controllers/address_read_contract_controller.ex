@@ -15,6 +15,7 @@ defmodule BlockScoutWeb.AddressReadContractController do
   alias BlockScoutWeb.AddressView
   alias Explorer.{Chain, Market}
   alias Explorer.Chain.Address
+  alias Explorer.ExchangeRates.Token
   alias Explorer.SmartContract.Reader
   alias Indexer.Fetcher.CoinBalanceOnDemand
 
@@ -39,7 +40,7 @@ defmodule BlockScoutWeb.AddressReadContractController do
       type: :regular,
       action: :read,
       custom_abi: custom_abi?,
-      exchange_rate: Market.get_coin_exchange_rate()
+      exchange_rate: Market.get_exchange_rate(Explorer.coin()) || Token.null()
     ]
 
     with {:ok, address_hash} <- Chain.string_to_address_hash(address_hash_string),

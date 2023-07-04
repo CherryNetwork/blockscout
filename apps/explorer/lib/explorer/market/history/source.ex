@@ -1,6 +1,6 @@
-defmodule Explorer.Market.History.Source.Price do
+defmodule Explorer.Market.History.Source do
   @moduledoc """
-  Interface for a source that allows for fetching of coin price.
+  Interface for a source that allows for fetching of market history.
   """
 
   @typedoc """
@@ -15,5 +15,5 @@ defmodule Explorer.Market.History.Source.Price do
   @doc """
   Fetch history for a specified amount of days in the past.
   """
-  @callback fetch_price_history(previous_days :: non_neg_integer()) :: {:ok, [record()]} | :error
+  @callback fetch_history(previous_days :: non_neg_integer()) :: {:ok, [record()]} | :error
 end

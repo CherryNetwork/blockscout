@@ -215,7 +215,6 @@ defmodule Explorer.Chain.SmartContract do
   * `implementation_address_hash` - address hash of the proxy's implementation if any
   * `autodetect_constructor_args` - field was added for storing user's choice
   * `is_yul` - field was added for storing user's choice
-  * `verified_via_eth_bytecode_db` - whether contract automatically verified via eth-bytecode-db or not.
   """
 
   @type t :: %Explorer.Chain.SmartContract{
@@ -239,8 +238,7 @@ defmodule Explorer.Chain.SmartContract do
           implementation_fetched_at: DateTime.t(),
           implementation_address_hash: Hash.Address.t(),
           autodetect_constructor_args: boolean | nil,
-          is_yul: boolean | nil,
-          verified_via_eth_bytecode_db: boolean | nil
+          is_yul: boolean | nil
         }
 
   schema "smart_contracts" do
@@ -267,7 +265,6 @@ defmodule Explorer.Chain.SmartContract do
     field(:autodetect_constructor_args, :boolean, virtual: true)
     field(:is_yul, :boolean, virtual: true)
     field(:metadata_from_verified_twin, :boolean, virtual: true)
-    field(:verified_via_eth_bytecode_db, :boolean)
 
     has_many(
       :decompiled_smart_contracts,
@@ -312,8 +309,7 @@ defmodule Explorer.Chain.SmartContract do
       :implementation_name,
       :compiler_settings,
       :implementation_address_hash,
-      :implementation_fetched_at,
-      :verified_via_eth_bytecode_db
+      :implementation_fetched_at
     ])
     |> validate_required([
       :name,
@@ -332,7 +328,7 @@ defmodule Explorer.Chain.SmartContract do
         attrs,
         error,
         error_message,
-        verification_with_files? \\ false
+        json_verification \\ false
       ) do
     validated =
       smart_contract
@@ -353,15 +349,14 @@ defmodule Explorer.Chain.SmartContract do
         :bytecode_checked_at,
         :contract_code_md5,
         :implementation_name,
-        :autodetect_constructor_args,
-        :verified_via_eth_bytecode_db
+        :autodetect_constructor_args
       ])
-      |> (&if(verification_with_files?,
+      |> (&if(json_verification,
             do: &1,
             else: validate_required(&1, [:compiler_version, :optimization, :address_hash, :contract_code_md5])
           )).()
 
-    field_to_put_message = if verification_with_files?, do: :files, else: select_error_field(error)
+    field_to_put_message = if json_verification, do: :files, else: select_error_field(error)
 
     if error_message do
       add_error(validated, field_to_put_message, error_message(error, error_message))

@@ -61,8 +61,7 @@ defmodule Indexer.Fetcher.ReplacedTransaction do
           transaction_fields
           |> pending_entry()
           |> reducer.(acc)
-        end,
-        true
+        end
       )
 
     final

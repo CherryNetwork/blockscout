@@ -35,31 +35,10 @@ defmodule Explorer.TokenExchangeRatesTest do
         base_url: "http://localhost:#{bypass.port}"
       )
 
-      [_token_with_no_exchange_rate | tokens] =
+      tokens =
         for _ <- 0..4 do
           insert(:token)
         end
-
-      coins_list =
-        tokens
-        |> Enum.map(fn %{contract_address_hash: contract_address_hash} ->
-          contract_address_hash_str = to_string(contract_address_hash)
-
-          %{
-            "id" => "#{contract_address_hash_str}_id",
-            "symbol" => "#{contract_address_hash_str}_symbol",
-            "name" => "#{contract_address_hash_str}_name",
-            "platforms" => %{
-              "some_other_chain" => "we do not want this to appear in the /simple/token_price/ request",
-              "ethereum" => contract_address_hash_str
-            }
-          }
-        end)
-
-      Bypass.expect_once(bypass, "GET", "/coins/list", fn conn ->
-        assert conn.query_string == "include_platform=true"
-        Conn.resp(conn, 200, Jason.encode!(coins_list))
-      end)
 
       token_exchange_rates =
         tokens
@@ -73,17 +52,18 @@ defmodule Explorer.TokenExchangeRatesTest do
         tokens
         |> Enum.map_join(",", fn %{contract_address_hash: contract_address_hash} -> to_string(contract_address_hash) end)
 
-      Bypass.expect_once(
-        bypass,
-        "GET",
-        "/simple/token_price/ethereum",
-        fn conn ->
-          assert conn.query_string == "vs_currencies=usd&include_market_cap=true&contract_addresses=#{joined_addresses}"
-          Conn.resp(conn, 200, Jason.encode!(token_exchange_rates))
-        end
-      )
+      Bypass.expect_once(bypass, fn conn ->
+        assert conn.method == "GET"
+
+        assert "#{conn.request_path}?#{conn.query_string}" ==
+                 "/simple/token_price/ethereum?vs_currencies=usd&include_market_cap=true&contract_addresses=#{joined_addresses}"
+
+        Conn.resp(conn, 200, Jason.encode!(token_exchange_rates))
+      end)
 
       GenServer.start_link(TokenExchangeRates, [])
+
+      set_mox_global()
 
       :timer.sleep(100)
 
@@ -93,31 +73,6 @@ defmodule Explorer.TokenExchangeRatesTest do
       end)
     end
 
-    test "empty body in /coins/list response" do
-      bypass = Bypass.open()
-
-      Application.put_env(:explorer, Explorer.ExchangeRates.Source.CoinGecko,
-        base_url: "http://localhost:#{bypass.port}"
-      )
-
-      [_token_with_no_exchange_rate | tokens] =
-        for _ <- 0..4 do
-          insert(:token)
-        end
-
-      Bypass.expect_once(bypass, "GET", "/coins/list", fn conn ->
-        assert conn.query_string == "include_platform=true"
-        Conn.resp(conn, 200, "[]")
-      end)
-
-      GenServer.start_link(TokenExchangeRates, [])
-
-      :timer.sleep(100)
-
-      Repo.all(Token)
-      |> Enum.each(fn %{fiat_value: fiat_value} -> assert is_nil(fiat_value) end)
-    end
-
     test "empty body in fetch response" do
       bypass = Bypass.open()
 
@@ -125,47 +80,27 @@ defmodule Explorer.TokenExchangeRatesTest do
         base_url: "http://localhost:#{bypass.port}"
       )
 
-      [_token_with_no_exchange_rate | tokens] =
+      tokens =
         for _ <- 0..4 do
           insert(:token)
         end
-
-      coins_list =
-        tokens
-        |> Enum.map(fn %{contract_address_hash: contract_address_hash} ->
-          contract_address_hash_str = to_string(contract_address_hash)
-
-          %{
-            "id" => "#{contract_address_hash_str}_id",
-            "symbol" => "#{contract_address_hash_str}_symbol",
-            "name" => "#{contract_address_hash_str}_name",
-            "platforms" => %{
-              "some_other_chain" => "we do not want this to appear in the /simple/token_price/ request",
-              "ethereum" => contract_address_hash_str
-            }
-          }
-        end)
-
-      Bypass.expect_once(bypass, "GET", "/coins/list", fn conn ->
-        assert conn.query_string == "include_platform=true"
-        Conn.resp(conn, 200, Jason.encode!(coins_list))
-      end)
 
       joined_addresses =
         tokens
         |> Enum.map_join(",", fn %{contract_address_hash: contract_address_hash} -> to_string(contract_address_hash) end)
 
-      Bypass.expect_once(
-        bypass,
-        "GET",
-        "/simple/token_price/ethereum",
-        fn conn ->
-          assert conn.query_string == "vs_currencies=usd&include_market_cap=true&contract_addresses=#{joined_addresses}"
-          Conn.resp(conn, 200, "{}")
-        end
-      )
+      Bypass.expect_once(bypass, fn conn ->
+        assert conn.method == "GET"
+
+        assert "#{conn.request_path}?#{conn.query_string}" ==
+                 "/simple/token_price/ethereum?vs_currencies=usd&include_market_cap=true&contract_addresses=#{joined_addresses}"
+
+        Conn.resp(conn, 200, "{}")
+      end)
 
       GenServer.start_link(TokenExchangeRates, [])
+
+      set_mox_global()
 
       :timer.sleep(100)
 
@@ -173,79 +108,34 @@ defmodule Explorer.TokenExchangeRatesTest do
       |> Enum.each(fn %{fiat_value: fiat_value} -> assert is_nil(fiat_value) end)
     end
 
-    test "error in /coins/list response" do
+    test "error in retch response" do
       bypass = Bypass.open()
 
       Application.put_env(:explorer, Explorer.ExchangeRates.Source.CoinGecko,
         base_url: "http://localhost:#{bypass.port}"
       )
 
-      [_token_with_no_exchange_rate | tokens] =
+      tokens =
         for _ <- 0..4 do
           insert(:token)
         end
-
-      Bypass.expect_once(bypass, "GET", "/coins/list", fn conn ->
-        assert conn.query_string == "include_platform=true"
-        Conn.resp(conn, 429, "Too many requests")
-      end)
-
-      GenServer.start_link(TokenExchangeRates, [])
-
-      :timer.sleep(100)
-
-      Repo.all(Token)
-      |> Enum.each(fn %{fiat_value: fiat_value} -> assert is_nil(fiat_value) end)
-    end
-
-    test "error in fetch response" do
-      bypass = Bypass.open()
-
-      Application.put_env(:explorer, Explorer.ExchangeRates.Source.CoinGecko,
-        base_url: "http://localhost:#{bypass.port}"
-      )
-
-      [_token_with_no_exchange_rate | tokens] =
-        for _ <- 0..4 do
-          insert(:token)
-        end
-
-      coins_list =
-        tokens
-        |> Enum.map(fn %{contract_address_hash: contract_address_hash} ->
-          contract_address_hash_str = to_string(contract_address_hash)
-
-          %{
-            "id" => "#{contract_address_hash_str}_id",
-            "symbol" => "#{contract_address_hash_str}_symbol",
-            "name" => "#{contract_address_hash_str}_name",
-            "platforms" => %{
-              "some_other_chain" => "we do not want this to appear in the /simple/token_price/ request",
-              "ethereum" => contract_address_hash_str
-            }
-          }
-        end)
-
-      Bypass.expect_once(bypass, "GET", "/coins/list", fn conn ->
-        assert conn.query_string == "include_platform=true"
-        Conn.resp(conn, 200, Jason.encode!(coins_list))
-      end)
 
       joined_addresses =
         tokens
         |> Enum.map_join(",", fn %{contract_address_hash: contract_address_hash} -> to_string(contract_address_hash) end)
 
-      Bypass.expect_once(
-        bypass,
-        "GET",
-        "/simple/token_price/ethereum",
-        fn conn ->
-          assert conn.query_string == "vs_currencies=usd&include_market_cap=true&contract_addresses=#{joined_addresses}"
-          Conn.resp(conn, 429, "Too many requests")
-        end
-      )
+      Bypass.expect_once(bypass, fn conn ->
+        assert conn.method == "GET"
+
+        assert "#{conn.request_path}?#{conn.query_string}" ==
+                 "/simple/token_price/ethereum?vs_currencies=usd&include_market_cap=true&contract_addresses=#{joined_addresses}"
+
+        Conn.resp(conn, 429, "Too Many Requests")
+      end)
 
       GenServer.start_link(TokenExchangeRates, [])
+
+      set_mox_global()
 
       :timer.sleep(100)
 

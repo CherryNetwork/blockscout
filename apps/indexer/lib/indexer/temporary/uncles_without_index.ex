@@ -58,9 +58,7 @@ defmodule Indexer.Temporary.UnclesWithoutIndex do
       )
 
     {:ok, final} =
-      query
-      |> Chain.add_fetcher_limit(true)
-      |> Repo.stream_reduce(initial, fn nephew_hash, acc ->
+      Repo.stream_reduce(query, initial, fn nephew_hash, acc ->
         nephew_hash
         |> to_string()
         |> reducer.(acc)

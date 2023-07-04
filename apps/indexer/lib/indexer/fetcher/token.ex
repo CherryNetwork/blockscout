@@ -42,13 +42,9 @@ defmodule Indexer.Fetcher.Token do
   @impl BufferedTask
   def init(initial_acc, reducer, _) do
     {:ok, acc} =
-      Chain.stream_uncataloged_token_contract_address_hashes(
-        initial_acc,
-        fn address, acc ->
-          reducer.(address, acc)
-        end,
-        true
-      )
+      Chain.stream_uncataloged_token_contract_address_hashes(initial_acc, fn address, acc ->
+        reducer.(address, acc)
+      end)
 
     acc
   end

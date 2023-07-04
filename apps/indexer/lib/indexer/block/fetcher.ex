@@ -189,16 +189,10 @@ defmodule Indexer.Block.Fetcher do
                token_transfers: %{params: token_transfers},
                tokens: %{on_conflict: :nothing, params: tokens},
                transactions: %{params: transactions_with_receipts},
+               transaction_actions: %{params: transaction_actions},
                withdrawals: %{params: withdrawals_params}
              }
-           ),
-         {:tx_actions, {:ok, inserted_tx_actions}} <-
-           {:tx_actions,
-            Chain.import(%{
-              transaction_actions: %{params: transaction_actions},
-              timeout: :infinity
-            })} do
-      inserted = Map.merge(inserted, inserted_tx_actions)
+           ) do
       Prometheus.Instrumenter.block_batch_fetch(fetch_time, callback_module)
       result = {:ok, %{inserted: inserted, errors: blocks_errors}}
       update_block_cache(inserted[:blocks])
@@ -564,7 +558,6 @@ defmodule Indexer.Block.Fetcher do
            hash: hash
          } = address_params
        ) do
-    {{String.downcase(hash), fetched_coin_balance_block_number},
-     Map.delete(address_params, :fetched_coin_balance_block_number)}
+    {{hash, fetched_coin_balance_block_number}, Map.delete(address_params, :fetched_coin_balance_block_number)}
   end
 end

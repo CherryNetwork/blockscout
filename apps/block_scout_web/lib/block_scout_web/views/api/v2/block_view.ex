@@ -7,6 +7,8 @@ defmodule BlockScoutWeb.API.V2.BlockView do
   alias Explorer.Chain.Block
   alias Explorer.Counters.BlockPriorityFeeCounter
 
+  @api_true [api?: true]
+
   def render("message.json", assigns) do
     ApiView.render("message.json", assigns)
   end
@@ -38,7 +40,7 @@ defmodule BlockScoutWeb.API.V2.BlockView do
       "height" => block.number,
       "timestamp" => block.timestamp,
       "tx_count" => count_transactions(block),
-      "miner" => Helper.address_with_info(nil, block.miner, block.miner_hash, false),
+      "miner" => Helper.address_with_info(block.miner, block.miner_hash),
       "size" => block.size,
       "hash" => block.hash,
       "parent_hash" => block.parent_hash,
@@ -59,7 +61,8 @@ defmodule BlockScoutWeb.API.V2.BlockView do
       "burnt_fees_percentage" => burnt_fees_percentage(burned_fee, tx_fees),
       "type" => block |> BlockView.block_type() |> String.downcase(),
       "tx_fees" => tx_fees,
-      "withdrawals_count" => count_withdrawals(block)
+      "has_beacon_chain_withdrawals" =>
+        if(single_block?, do: Chain.check_if_withdrawals_in_block(block.hash, @api_true), else: nil)
     }
   end
 
@@ -104,7 +107,4 @@ defmodule BlockScoutWeb.API.V2.BlockView do
 
   def count_transactions(%Block{transactions: txs}) when is_list(txs), do: Enum.count(txs)
   def count_transactions(_), do: nil
-
-  def count_withdrawals(%Block{withdrawals: withdrawals}) when is_list(withdrawals), do: Enum.count(withdrawals)
-  def count_withdrawals(_), do: nil
 end

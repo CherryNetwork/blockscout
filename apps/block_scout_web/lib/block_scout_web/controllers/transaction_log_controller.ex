@@ -8,6 +8,7 @@ defmodule BlockScoutWeb.TransactionLogController do
 
   alias BlockScoutWeb.{AccessHelper, Controller, TransactionController, TransactionLogView}
   alias Explorer.{Chain, Market}
+  alias Explorer.ExchangeRates.Token
   alias Phoenix.View
 
   def index(conn, %{"transaction_id" => transaction_hash_string, "type" => "JSON"} = params) do
@@ -98,7 +99,7 @@ defmodule BlockScoutWeb.TransactionLogController do
         current_path: Controller.current_full_path(conn),
         current_user: current_user(conn),
         transaction: transaction,
-        exchange_rate: Market.get_coin_exchange_rate(),
+        exchange_rate: Market.get_exchange_rate(Explorer.coin()) || Token.null(),
         from_tags: get_address_tags(transaction.from_address_hash, current_user(conn)),
         to_tags: get_address_tags(transaction.to_address_hash, current_user(conn)),
         tx_tags:

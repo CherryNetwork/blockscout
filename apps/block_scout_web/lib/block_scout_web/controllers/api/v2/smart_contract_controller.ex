@@ -176,7 +176,6 @@ defmodule BlockScoutWeb.API.V2.SmartContractController do
             contract_type,
             params["from"],
             address.smart_contract.abi,
-            true,
             @api_true
           )
         end
